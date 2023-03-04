@@ -1,0 +1,7 @@
+{
+  "name": "tetrolino",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
