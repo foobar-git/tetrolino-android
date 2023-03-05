@@ -67,7 +67,7 @@ export class HomePage {
     this.setUpPreviewGrid(this.width_previewWindow);
     this.squares_previewGrid = document.querySelectorAll('.preview-grid div');
     this.index_previewGrid = 0;
-    this.scoreDisplay = document.querySelector('#score');
+    this.scoreDisplay = document.querySelector('#score-int');
     this.initStartPauseButton();
     this.initMoveButtons();
 
@@ -142,8 +142,8 @@ export class HomePage {
   setUpPreviewGrid(wp) {  // set up the preview grid (next tetrolino box)
     for (let i = 0; i < wp; i++) {
       let element = document.createElement('div');
-      element.style.width = "19px";
-      element.style.height = "19px";
+      element.style.width = "20px";
+      element.style.height = "20px";
       this.previewGrid?.appendChild(element);
     }
   }
@@ -152,8 +152,8 @@ export class HomePage {
     this.grid = document.querySelector('.grid');
     for (let i = 0; i < w; i++) {
       let element = document.createElement('div');
-      element.style.width = "19px";
-      element.style.height = "19px";
+      element.style.width = "20px";
+      element.style.height = "20px";
       this.grid?.appendChild(element);
     }
     for (let i = 0; i < 10; i++) {

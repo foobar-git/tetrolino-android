@@ -1,10 +1,24 @@
+#top-text {
+  display: flex;
+  justify-content: space-between;
+}
+
+#title {
+  display: inline-block;
+}
+
+#score {
+  display: inline-block;
+}
+
 #buttons {
   display: flex;
   justify-content: center;
 }
 
 #game-screen {
-  margin: auto;
+  display: flex;
+  justify-content: center;
 }
 
 .container {
@@ -12,20 +26,24 @@
 }
 
 .grid {
-  width: 200px;
-  height: 400px;
+  margin-bottom: 10px;
+  width: 204px;
+  height: 404px;
   display: flex;
   flex-wrap: wrap;
   background-color: black;
+  border: 2px solid darkgray;
+  outline: lightgray solid 2px;
 }
 
 .preview-grid {
+  margin-top: 10px;
   margin-left: 10px;
   width: 80px;
   height: 80px;
   display: flex;
   flex-wrap: wrap;
-  background-color: black;
+  background-color: transparent;
 }
 
 /*.solid {
