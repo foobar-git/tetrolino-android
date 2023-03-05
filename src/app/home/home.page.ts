@@ -35,12 +35,20 @@ export class HomePage {
   previewGrid: any;
   index_previewGrid: number;
   scoreDisplay: any;
+  colors = ['yellow', 'yellowgreen', 'cyan', 'blue', 'green', 'red', 'purple'];
+
   startPauseButton: any;
   rotateButton: any;
   moveDownButton: any;
   moveLeftButton: any;
   moveRightButton: any;
-  colors = ['yellow', 'yellowgreen', 'cyan', 'blue', 'green', 'red', 'purple'];
+  handleClick_startPause = () => {
+    if (!this.gameIsOver) {
+      this.gamePaused = !this.gamePaused;
+        this.pauseGame(this.gamePaused);
+        console.log("GAME PAUSED");
+    }
+  }
   handleClick_rotate = () => {
     if (!this.gamePaused || this.gameIsOver) this.rotate();
   };
@@ -53,6 +61,7 @@ export class HomePage {
   handleClick_moveRight = () => {
     if (!this.gamePaused || this.gameIsOver) this.moveRight();
   };
+
 
   constructor() {}
 
@@ -78,6 +87,8 @@ export class HomePage {
     this.selectRandomTetrolino();
     this.draw();
     this.displayNextTetrolino();
+    
+    this.addButtonListeners();
   }
 
   /////////////////////////////////////////////////////////////////////////////////
@@ -280,31 +291,27 @@ export class HomePage {
   // BUTTONS
   initStartPauseButton() {
     this.startPauseButton = document.querySelector('#start-pause-button');
-    this.startPauseButton.addEventListener('click', () => {
-      this.gamePaused = !this.gamePaused;
-      this.pauseGame(this.gamePaused);
-      console.log("GAME PAUSED");
-    });
   }
 
   initMoveButtons() {
-    //document.addEventListener('keydown', this.getUserInput); // this was for keyboard input
     this.rotateButton = document.querySelector('#rotate-button');
-    this.rotateButton.addEventListener('click', this.handleClick_rotate);
-
     this.moveDownButton = document.querySelector('#move-down-button');
-    this.moveDownButton.addEventListener('click', this.handleClick_moveDown);
-
     this.moveLeftButton = document.querySelector('#move-left-button');
-    this.moveLeftButton.addEventListener('click', this.handleClick_moveLeft);
-
     this.moveRightButton = document.querySelector('#move-right-button');
+  }
+
+  addButtonListeners() {
+    //document.addEventListener('keydown', this.getUserInput); // former keyboard input
+    this.startPauseButton.addEventListener('click', this.handleClick_startPause);
+    this.rotateButton.addEventListener('click', this.handleClick_rotate);
+    this.moveDownButton.addEventListener('click', this.handleClick_moveDown);
+    this.moveLeftButton.addEventListener('click', this.handleClick_moveLeft);
     this.moveRightButton.addEventListener('click', this.handleClick_moveRight);
   }
 
   /////////////////////////////////////////////////////////////////////////////////
   // FUNCTIONS - USER INPUT
-  getUserInput(e) { // assign functions to key codes
+  /*getUserInput(e) { // assign functions to key codes
     if (!this.gamePaused || this.gameIsOver) {
       if (e.keyCode === 37) {         // left arrow
         this.moveLeft();
@@ -316,7 +323,7 @@ export class HomePage {
         this.moveDown();
       }
     }
-  }
+  }*/
 
   moveLeft() { // move tetrolino left until edge of screen
     this.undraw();
