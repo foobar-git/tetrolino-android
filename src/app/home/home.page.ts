@@ -1,4 +1,7 @@
 import { Component } from '@angular/core';
+import { AdMob, AdMobRewardItem, AdOptions, RewardAdOptions, RewardAdPluginEvents } from '@capacitor-community/admob';
+import { BannerAdOptions, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob/dist/esm/banner';
+
 
 @Component({
   selector: 'app-home',
@@ -7,6 +10,12 @@ import { Component } from '@angular/core';
 })
 export class HomePage {
 
+  // Google AdMob variables
+  bannerAdId = 'ca-app-pub-3940256099942544/6300978111';  // testing id
+  interstitialAdId = 'ca-app-pub-3940256099942544/1033173712';  // testing id
+  rewardedAdId = 'ca-app-pub-3940256099942544/5224354917';  // testing id
+
+  // Tetrolino variables
   tetrolinoes: any;
   previewTetrolinos: any;
   startingPosition: any;
@@ -25,6 +34,8 @@ export class HomePage {
   score = 0;
   gamePaused = true;
   gameIsOver = false;
+  blockWidth = "20px";
+  blockHeight = "20px";
   width_squareGrid = 10;
   width_mainWindow = 200;
   width_squarePreviewGrid = 4;
@@ -63,7 +74,9 @@ export class HomePage {
   };
 
 
-  constructor() {}
+  constructor() {
+    this.initialize();
+  }
 
   ngOnInit() {
     // init grid
@@ -87,7 +100,7 @@ export class HomePage {
     this.selectRandomTetrolino();
     this.draw();
     this.displayNextTetrolino();
-    
+
     this.addButtonListeners();
   }
 
@@ -153,8 +166,8 @@ export class HomePage {
   setUpPreviewGrid(wp) {  // set up the preview grid (next tetrolino box)
     for (let i = 0; i < wp; i++) {
       let element = document.createElement('div');
-      element.style.width = "20px";
-      element.style.height = "20px";
+      element.style.width = this.blockWidth;
+      element.style.height = this.blockHeight;
       this.previewGrid?.appendChild(element);
     }
   }
@@ -163,8 +176,8 @@ export class HomePage {
     this.grid = document.querySelector('.grid');
     for (let i = 0; i < w; i++) {
       let element = document.createElement('div');
-      element.style.width = "20px";
-      element.style.height = "20px";
+      element.style.width = this.blockWidth;
+      element.style.height = this.blockHeight;
       this.grid?.appendChild(element);
     }
     for (let i = 0; i < 10; i++) {
@@ -309,6 +322,13 @@ export class HomePage {
     this.moveRightButton.addEventListener('click', this.handleClick_moveRight);
   }
 
+  removeButtonListeners() {
+    this.rotateButton.removeEventListener('click', this.handleClick_rotate);
+    this.moveDownButton.removeEventListener('click', this.handleClick_moveDown);
+    this.moveLeftButton.removeEventListener('click', this.handleClick_moveLeft);
+    this.moveRightButton.removeEventListener('click', this.handleClick_moveRight);
+  }
+
   /////////////////////////////////////////////////////////////////////////////////
   // FUNCTIONS - USER INPUT
   /*getUserInput(e) { // assign functions to key codes
@@ -385,11 +405,69 @@ export class HomePage {
     }
   }
 
-  removeButtonListeners() {
-    this.rotateButton.removeEventListener('click', this.handleClick_rotate);
-    this.moveDownButton.removeEventListener('click', this.handleClick_moveDown);
-    this.moveLeftButton.removeEventListener('click', this.handleClick_moveLeft);
-    this.moveRightButton.removeEventListener('click', this.handleClick_moveRight);
+  /////////////////////////////////////////////////////////////////////////////////
+  // Google AdMob
+  async initialize() {
+    const { status } = await AdMob.trackingAuthorizationStatus();
+    console.log(status);
+
+    if (status === 'notDetermined') {
+      console.log('Display information before ads load first time.');
+    }
+
+    AdMob.initialize({
+      requestTrackingAuthorization: true,
+      testingDevices: ['test_device_code_here'],
+      initializeForTesting: true
+    })
+  }
+
+  async showBanner(adId) {
+    
+    const options: BannerAdOptions = {
+      adId,  
+      adSize: BannerAdSize.ADAPTIVE_BANNER,
+      position: BannerAdPosition.BOTTOM_CENTER,
+      margin: 0,
+      isTesting: true
+    };
+
+    await AdMob.showBanner(options);
+  }
+
+  async hideBanner() {
+    // hide banner, still available
+    await AdMob.hideBanner();
+
+    // completely remove banner
+    await AdMob.removeBanner();
+  }
+
+  async showInterstitial(adId) {
+    const options: AdOptions = {
+      adId,
+      isTesting: true
+    };
+    await AdMob.prepareInterstitial(options);
+    await AdMob.showInterstitial();
+  }
+
+  async showRewardVideo(adId) {
+    AdMob.addListener(
+      RewardAdPluginEvents.Rewarded,
+      (reward: AdMobRewardItem) => {
+        // Give the reward
+        console.log('Reward: ', reward);
+      }
+    );
+
+    const options: RewardAdOptions = {
+      adId,
+      isTesting: true
+      //ssv: { ... }
+    };
+    await AdMob.prepareRewardVideoAd(options);
+    await AdMob.showRewardVideoAd();
   }
 
 }

@@ -37,6 +37,16 @@
         <ion-button id="move-right-button">RIGHT</ion-button>
       </div>
 
+      <!-- Testing Google Admob-->
+      <div id="buttons" style="margin-top: 10px;">
+        <ion-button (click)="showBanner(bannerAdId)">Show Banner</ion-button>
+        <ion-button (click)="hideBanner()">Hide Banner</ion-button>
+      </div>
+      <div id="buttons">
+        <ion-button (click)="showInterstitial(interstitialAdId)">Interstitial</ion-button>
+        <ion-button (click)="showRewardVideo(rewardedAdId)">Reward Video</ion-button>
+      </div>
+
     </div>
   </div>
 
