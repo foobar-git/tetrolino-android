@@ -8,27 +8,29 @@
 
 <ion-content [fullscreen]="true">
 
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Tetrolino</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <div id="game-screen">
+    <ion-header collapse="condense">
+      <ion-toolbar>
+        <ion-title size="large">Tetrolino</ion-title>
+      </ion-toolbar>
+    </ion-header>
   
-  <div id="testing-buttons">
-    <ion-button id="start-pause-button">Start / Pause</ion-button>
-    <ion-button id="rotate-button">ROTATE</ion-button>
-  </div>
-  <div id="testing-buttons">
-    <ion-button id="move-left-button">LEFT</ion-button>
-    <ion-button id="move-down-button">DOWN</ion-button>
-    <ion-button id="move-right-button">RIGHT</ion-button>
-  </div>
-
-  <div class="container">
-    <div class="grid">
+    <div class="container">
+      <div class="grid">
+      </div>
+  
+      <div class="preview-grid">
+      </div>
     </div>
-
-    <div class="preview-grid">
+    
+    <div id="buttons">
+      <ion-button id="start-pause-button">Start / Pause</ion-button>
+      <ion-button id="rotate-button">ROTATE</ion-button>
+    </div>
+    <div id="buttons">
+      <ion-button id="move-left-button">LEFT</ion-button>
+      <ion-button id="move-down-button">DOWN</ion-button>
+      <ion-button id="move-right-button">RIGHT</ion-button>
     </div>
   </div>
 
