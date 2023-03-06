@@ -1,6 +1,7 @@
 #top-text {
   display: flex;
   justify-content: space-between;
+  font-family: "Lucida Console", "Courier New", monospace;
 }
 
 #title {
@@ -9,6 +10,19 @@
 
 #score {
   display: inline-block;
+}
+
+#score-number {
+  font-family: "Times New Roman", Times, serif;
+}
+
+#level {
+  text-align: center;
+  font-family: "Lucida Console", "Courier New", monospace;
+}
+
+#level-number {
+  font-family: "Times New Roman", Times, serif;
 }
 
 #buttons {

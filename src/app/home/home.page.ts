@@ -11,13 +11,13 @@ import { App } from '@capacitor/app';
   styleUrls: ['home.page.scss'],
 })
 export class HomePage {
-  // alert message
+  // alert handler message
   handlerMessage = "";
 
   // Google AdMob variables
   bannerAdId = 'ca-app-pub-3940256099942544/6300978111';  // testing id
   interstitialAdId = 'ca-app-pub-3940256099942544/1033173712';  // testing id
-  rewardedAdId = 'ca-app-pub-3940256099942544/5224354917';  // testing id
+  rewardAdId = 'ca-app-pub-3940256099942544/5224354917';  // testing id
 
   // Tetrolino variables
   tetrolinoes: any;
@@ -36,6 +36,7 @@ export class HomePage {
   timerId: any;
   timer = 500;                // set time interval (1000 = 1 second)
   score = 0;
+  level = 1;
   gamePaused = true;
   gameIsOver = false;
   blockWidth = "20px";
@@ -50,7 +51,16 @@ export class HomePage {
   previewGrid: any;
   index_previewGrid: number;
   scoreDisplay: any;
-  colors = ['yellow', 'yellowgreen', 'cyan', 'blue', 'green', 'red', 'purple'];
+  levelDisplay: any;
+  titleDisplay: any;
+  gameTitleString = "Tetrolino";
+  gamePauseString = "Game Paused";
+  gameOverString = "Game Over";
+  colors = [
+    'yellow', 'yellowgreen', 'cyan', 'skyblue', 'blue', 'cadetblue', 'green',
+    'darkgreen', 'olive', 'darkslategray', 'darkgoldenrod', 'brown', 'crimson',
+    'red', 'pink', 'purple'
+  ];
 
   // buttons
   startPauseButton: any;
@@ -113,10 +123,12 @@ export class HomePage {
     this.setUpPreviewGrid(this.width_previewWindow);
     this.squares_previewGrid = document.querySelectorAll('.preview-grid div');
     this.index_previewGrid = 0;
-    this.scoreDisplay = document.querySelector('#score-int');
+    this.scoreDisplay = document.querySelector('#score-number');
+    this.levelDisplay = document.querySelector('#level-number');
+    this.titleDisplay = document.querySelector('#title');
     this.initStartPauseButton();
     this.initMoveButtons();
-
+    this.levelDisplay.innerHTML = this.level;
     this.startingPosition = 4;   // set tetrolino starting position
     this.currentPosition = this.startingPosition;
     this.nextRandomTetrolino = Math.floor(Math.random() * this.tetrolinoes.length);
@@ -124,8 +136,14 @@ export class HomePage {
     this.selectRandomTetrolino();
     this.draw();
     this.displayNextTetrolino();
-
     this.addButtonListeners();
+
+    // prepare ads
+    this.prepareInterstitialAd(this.interstitialAdId);
+    this.prepareRewardAd(this.rewardAdId);
+
+    // show banner ads
+    this.showBannerAd(this.bannerAdId);
   }
 
   /////////////////////////////////////////////////////////////////////////////////
@@ -300,13 +318,13 @@ export class HomePage {
       this.selectRandomTetrolino();
       this.currentPosition = this.startingPosition;     // set the new tetrolino at the top
       this.displayNextTetrolino();
-      this.addScore();
+      this.removeRowsAddScore();
       this.draw();
       this.gameOver();
     }
   }
 
-  addScore() { // add score
+  removeRowsAddScore() { // add score
     for (let i = 0; i < (this.width_mainWindow - 1); i += this.width_squareGrid) {
       const row = [i+0, i+1, i+2, i+3, i+4, i+5, i+6, i+7, i+8, i+9];
       if (row.every(index => this.squares_grid[index].classList.contains('solid'))) {
@@ -416,29 +434,35 @@ export class HomePage {
 
   pauseGame(b) {
     console.log("gamePaused: " + b);
-    if (!b) this.timerId = window.setInterval(this.mainGameLoop.bind(this), this.timer);
+    if (!b) {
+      this.titleDisplay.innerHTML = this.gameTitleString;
+      this.timerId = window.setInterval(this.mainGameLoop.bind(this), this.timer);
+    }
     else {
       clearInterval(this.timerId);
+      this.titleDisplay.innerHTML = this.gamePauseString;
       this.gamePausedAlert();
     }
   }
 
   gameOver() {
     if (this.currentTetrolino.some(index => this.squares_grid[this.currentPosition + index].classList.contains('solid'))) {
-      this.scoreDisplay.innerHTML = this.score + " - Game Over";
+      this.titleDisplay.innerHTML = this.gameOverString;
       clearInterval(this.timerId);
       this.gameIsOver = true;
       this.removeButtonListeners();
-      this.restartGameAlert();
+      //this.restartGameAlert();
+      this.watchAdAlert() // then restart game
     }
   }
 
   restartGame() {
     window.location.reload();
   }
+
   /////////////////////////////////////////////////////////////////////////////////
   // ALERTS
-  async gamePausedAlert() {
+  /*async gamePausedAlert() { // simple game paused alert
     const alert = await this.alertController.create({
       header: 'Game Paused',
       //subHeader: 'Important message',
@@ -446,14 +470,46 @@ export class HomePage {
       buttons: ['OK']
     });
     await alert.present();
+  }*/
+
+  async watchAdAlert() {
+    const alert = await this.alertController.create({
+      //header: 'Tetrolino',
+      subHeader: 'Game Loading',
+      message: 'Tetrolino is free to play. Please take a moment and watch a short ad. Thank you and have fun with this timeless classic!',
+      buttons: [
+        {
+          text: 'OK',
+          handler: () => {
+            this.handlerMessage = 'Loading Ad...';
+            this.showRewardAd();
+          },
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async gamePausedAlert() {
+    const alert = await this.alertController.create({
+      header: 'Game Paused',
+      buttons: [
+        {
+          text: 'OK',
+          handler: () => {
+            this.handlerMessage = 'Resuming game...';
+            this.gamePaused = false;
+            this.pauseGame(false);
+          },
+        }
+      ]
+    });
+    await alert.present();
   }
 
   async restartGameAlert() {
     const alert = await this.alertController.create({
       header: 'Game Over',
-      //subHeader: 'Important message',
-      //message: 'This is an alert!',
-      //buttons: ['OK']
       buttons: [
         {
           text: 'New Game',
@@ -484,7 +540,8 @@ export class HomePage {
     })
   }
 
-  async showBanner(adId) {
+  // BANNER AD
+  async showBannerAd(adId) {
     const options: BannerAdOptions = {
       adId,  
       adSize: BannerAdSize.ADAPTIVE_BANNER,
@@ -492,43 +549,52 @@ export class HomePage {
       margin: 0,
       isTesting: true
     };
-
     await AdMob.showBanner(options);
   }
 
-  async hideBanner() {
+  async hideBannerAd() {
     // hide banner, still available
     await AdMob.hideBanner();
+  }
 
+  async removeBannerAd() {
     // completely remove banner
     await AdMob.removeBanner();
   }
 
-  async showInterstitial(adId) {
+  // INTERSTITIAL AD
+  async showInterstitialAd() {
+    await AdMob.showInterstitial();
+  }
+
+  async prepareInterstitialAd(adId) {
     const options: AdOptions = {
       adId,
       isTesting: true
     };
     await AdMob.prepareInterstitial(options);
-    await AdMob.showInterstitial();
   }
 
-  async showRewardVideo(adId) {
+  // REWARDED VIDEO AD
+  async showRewardAd() {
     AdMob.addListener(
       RewardAdPluginEvents.Rewarded,
       (reward: AdMobRewardItem) => {
         // Give the reward
         console.log('Reward: ', reward);
+        this.restartGame();
       }
     );
+    await AdMob.showRewardVideoAd();
+  }
 
+  async prepareRewardAd(adId) {
     const options: RewardAdOptions = {
       adId,
       isTesting: true
       //ssv: { ... }
     };
     await AdMob.prepareRewardVideoAd(options);
-    await AdMob.showRewardVideoAd();
   }
 
 }
