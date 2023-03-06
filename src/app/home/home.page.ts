@@ -1,7 +1,9 @@
 import { Component } from '@angular/core';
 import { AdMob, AdMobRewardItem, AdOptions, RewardAdOptions, RewardAdPluginEvents } from '@capacitor-community/admob';
 import { BannerAdOptions, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob/dist/esm/banner';
-
+import { AlertController, IonRouterOutlet, Platform } from '@ionic/angular';
+import { Optional } from '@angular/core';
+import { App } from '@capacitor/app';
 
 @Component({
   selector: 'app-home',
@@ -9,6 +11,8 @@ import { BannerAdOptions, BannerAdPosition, BannerAdSize } from '@capacitor-comm
   styleUrls: ['home.page.scss'],
 })
 export class HomePage {
+  // alert message
+  handlerMessage = "";
 
   // Google AdMob variables
   bannerAdId = 'ca-app-pub-3940256099942544/6300978111';  // testing id
@@ -48,6 +52,7 @@ export class HomePage {
   scoreDisplay: any;
   colors = ['yellow', 'yellowgreen', 'cyan', 'blue', 'green', 'red', 'purple'];
 
+  // buttons
   startPauseButton: any;
   rotateButton: any;
   moveDownButton: any;
@@ -57,7 +62,8 @@ export class HomePage {
     if (!this.gameIsOver) {
       this.gamePaused = !this.gamePaused;
         this.pauseGame(this.gamePaused);
-        console.log("GAME PAUSED");
+    } else {
+      this.restartGame();
     }
   }
   handleClick_rotate = () => {
@@ -74,8 +80,26 @@ export class HomePage {
   };
 
 
-  constructor() {
-    this.initialize();
+  constructor(
+    private alertController: AlertController,
+    private platform: Platform,
+    @Optional() private routerOutlet?: IonRouterOutlet
+  ) {
+    // pause when switching to other app
+    this.platform.pause.subscribe(async () => {
+      this.gamePaused = true;
+      this.pauseGame(true);
+    });
+
+    // exit app if back button is pressed
+    this.platform.backButton.subscribeWithPriority(-1, () => {
+      if (!this.routerOutlet.canGoBack()) {
+        App.exitApp();
+      }
+    });
+
+    // init Google AdMob
+    this.initializeGoogleAdMob();
   }
 
   ngOnInit() {
@@ -393,7 +417,10 @@ export class HomePage {
   pauseGame(b) {
     console.log("gamePaused: " + b);
     if (!b) this.timerId = window.setInterval(this.mainGameLoop.bind(this), this.timer);
-    else clearInterval(this.timerId);
+    else {
+      clearInterval(this.timerId);
+      this.gamePausedAlert();
+    }
   }
 
   gameOver() {
@@ -402,12 +429,47 @@ export class HomePage {
       clearInterval(this.timerId);
       this.gameIsOver = true;
       this.removeButtonListeners();
+      this.restartGameAlert();
     }
   }
 
+  restartGame() {
+    window.location.reload();
+  }
   /////////////////////////////////////////////////////////////////////////////////
-  // Google AdMob
-  async initialize() {
+  // ALERTS
+  async gamePausedAlert() {
+    const alert = await this.alertController.create({
+      header: 'Game Paused',
+      //subHeader: 'Important message',
+      //message: 'This is an alert!',
+      buttons: ['OK']
+    });
+    await alert.present();
+  }
+
+  async restartGameAlert() {
+    const alert = await this.alertController.create({
+      header: 'Game Over',
+      //subHeader: 'Important message',
+      //message: 'This is an alert!',
+      //buttons: ['OK']
+      buttons: [
+        {
+          text: 'New Game',
+          handler: () => {
+            this.handlerMessage = 'Restarting game...';
+            this.restartGame();
+          },
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////
+  // GOOGLE ADMOB
+  async initializeGoogleAdMob() {
     const { status } = await AdMob.trackingAuthorizationStatus();
     console.log(status);
 
@@ -423,7 +485,6 @@ export class HomePage {
   }
 
   async showBanner(adId) {
-    
     const options: BannerAdOptions = {
       adId,  
       adSize: BannerAdSize.ADAPTIVE_BANNER,
