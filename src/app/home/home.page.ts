@@ -34,9 +34,15 @@ export class HomePage {
   randomColor: string;
   nextRandomColor: string;
   timerId: any;
-  timer = 500;                // set time interval (1000 = 1 second)
+  timer = 900;                // set time interval (1000 = 1 second)
+  linesCleared = 0;
+  linesToNextLevel = 5;
   score = 0;
   level = 1;
+  levelBonus = (this.level * 100);
+  moveDownBonus = 0;
+  specialTetrolinoMoveCounter = 0;
+  specialTetrolinoMoveBonus = 1000;
   gamePaused = true;
   gameIsOver = false;
   blockWidth = "20px";
@@ -62,6 +68,18 @@ export class HomePage {
     'red', 'pink', 'purple'
   ];
 
+  // audio
+  tetrolinoMusic = new Audio('assets/audio/tetrolino.mp3');
+  solidifyAudio = new Audio('assets/audio/solidify.mp3');
+  clearLineAudio = new Audio('assets/audio/clearLine.mp3');
+  tetrolinoSpecialMoveAudio = new Audio('assets/audio/tetrolinoSpecialMove.mp3');
+  gameOverAudio = new Audio('assets/audio/voice/gameOver.wav');
+  goodGameAudio = new Audio('assets/audio/voice/goodGame.wav');
+  goodJobAudio = new Audio('assets/audio/voice/goodJob.wav');
+  s100Audio = new Audio('assets/audio/voice/100.wav');
+  s1000Audio = new Audio('assets/audio/voice/1000.wav');
+  s10000Audio = new Audio('assets/audio/voice/10000.wav');
+
   // buttons
   startPauseButton: any;
   rotateButton: any;
@@ -74,7 +92,7 @@ export class HomePage {
         this.pauseGame(this.gamePaused);
     } else {
       this.restartGame();
-    }
+    };
   }
   handleClick_rotate = () => {
     if (!this.gamePaused || this.gameIsOver) this.rotate();
@@ -105,7 +123,7 @@ export class HomePage {
     this.platform.backButton.subscribeWithPriority(-1, () => {
       if (!this.routerOutlet.canGoBack()) {
         App.exitApp();
-      }
+      };
     });
 
     // init Google AdMob
@@ -211,7 +229,7 @@ export class HomePage {
       element.style.width = this.blockWidth;
       element.style.height = this.blockHeight;
       this.previewGrid?.appendChild(element);
-    }
+    };
   }
 
   setUpGrid(w) {  // setting up the grid
@@ -221,22 +239,22 @@ export class HomePage {
       element.style.width = this.blockWidth;
       element.style.height = this.blockHeight;
       this.grid?.appendChild(element);
-    }
+    };
     for (let i = 0; i < 10; i++) {
       let element = document.createElement('div');
       element.classList.add('solid');
       this.grid?.appendChild(element);
-    }
+    };
     this.squares_grid = Array.from(document.querySelectorAll('.grid div'));
   }
 
   isAtRight() { // check if a tetrolino is at the right edge
     return this.currentTetrolino.some(index => (this.currentPosition + index + 1) % this.width_squareGrid === 0)  
-  }
+  };
 
   isAtLeft() {  // check if a tetrolino is at the left edge
     return this.currentTetrolino.some(index => (this.currentPosition + index) % this.width_squareGrid === 0)
-  }
+  };
 
   checkRotatedPosition(P?) {
     P = P || this.currentPosition                // get current position and check if the piece is near the left side
@@ -244,14 +262,13 @@ export class HomePage {
       if (this.isAtRight()) {                    // use actual position to check if it's flipped over to right side
         this.currentPosition += 1                // if so, add one to wrap it back around
         this.checkRotatedPosition(P)             // check again;  pass position from start, since long block might need to move more
-      }
-    }
-    else if (P % this.width_squareGrid > 5) {
+      };
+    } else if (P % this.width_squareGrid > 5) {
       if (this.isAtLeft()) {
         this.currentPosition -= 1
         this.checkRotatedPosition(P)
-      }
-    }
+      };
+    };
   }
 
   draw() {  // draw the tetrolino
@@ -267,7 +284,7 @@ export class HomePage {
     this.currentTetrolino.forEach(index => {
       this.squares_grid[this.currentPosition + index].classList.remove('tetrolino');
       this.squares_grid[this.currentPosition + index].style.backgroundColor = '';   // remove the color
-    })
+    });
   }
 
   displayNextTetrolino() {
@@ -275,13 +292,13 @@ export class HomePage {
     this.squares_previewGrid.forEach(square => {
       square.classList.remove('tetrolino');
       square.style.backgroundColor = '';   // remove the color
-    })
+    });
     let selectedPreviewTetrolino = this.previewTetrolinos[this.nextRandomTetrolino];
     let currentPreview = selectedPreviewTetrolino[this.nextRandomRotation];
     currentPreview.forEach( index => {
       this.squares_previewGrid[this.index_previewGrid + index].classList.add('tetrolino');
       this.squares_previewGrid[this.index_previewGrid + index].style.backgroundColor = this.nextRandomColor;
-    })
+    });
   }
 
   advanceTetrolinoDownward() {  // move tetrolino down
@@ -292,7 +309,7 @@ export class HomePage {
       this.draw();
     } else {
       this.solidify();
-    }
+    };
   }
 
   selectRandomTetrolino() {
@@ -310,36 +327,95 @@ export class HomePage {
     this.nextRandomRotation = Math.floor(Math.random() * this.selectedTetrolino.length);
     this.currentRotation = this.randomRotation;
     this.currentTetrolino = this.selectedTetrolino[this.currentRotation];
+
+    // reset the special tetrolino move counter
+    this.specialTetrolinoMoveCounter = 0;
   }
 
   solidify() { // solidify the tetrolino into place
     if (this.currentTetrolino.some(index => this.squares_grid[this.currentPosition + index + this.width_squareGrid].classList.contains('solid'))) {
+      this.playAudio(this.solidifyAudio, true, 0.20);
       this.currentTetrolino.forEach(index => this.squares_grid[this.currentPosition + index].classList.add('solid'));
       this.selectRandomTetrolino();
       this.currentPosition = this.startingPosition;     // set the new tetrolino at the top
       this.displayNextTetrolino();
-      this.removeRowsAddScore();
+      this.removeRows();
       this.draw();
       this.gameOver();
-    }
+    };
   }
 
-  removeRowsAddScore() { // add score
+  removeRows() { // add score
+    this.specialTetrolinoMoveCounter++; // count toward special tetrolino move
     for (let i = 0; i < (this.width_mainWindow - 1); i += this.width_squareGrid) {
       const row = [i+0, i+1, i+2, i+3, i+4, i+5, i+6, i+7, i+8, i+9];
       if (row.every(index => this.squares_grid[index].classList.contains('solid'))) {
-        this.score += 10;
-        this.scoreDisplay.innerHTML = this.score;
+        this.addScore();
         row.forEach(index => {
           this.squares_grid[index].classList.remove('solid');
           this.squares_grid[index].classList.remove('tetrolino');
           this.squares_grid[index].style.backgroundColor = '';   // remove the color
-        })
+        });
         const squaresRemoved = this.squares_grid.splice(i, this.width_squareGrid);
         this.squares_grid = squaresRemoved.concat(this.squares_grid);
         this.squares_grid.forEach(block => this.grid.appendChild(block));
-      }
+      };
+    };
+  }  
+
+  addScore() {
+    this.playAudio(this.clearLineAudio, true, 0.85);
+    this.linesCleared++;
+    this.score += 10 + this.moveDownBonus;
+    if (this.specialTetrolinoMoveCounter == 4) {
+      this.score += this.specialTetrolinoMoveBonus + this.levelBonus;
+      this.playAudioThenNextAudio(this.tetrolinoSpecialMoveAudio, this.goodJobAudio, 0.5, 0.85);
     }
+    this.scoreDisplay.innerHTML = this.score;
+    this.checkScore();
+    this.moveDownBonus = 0;
+  }
+
+  advanceLevel() {
+    this.level++;
+    this.levelDisplay.innerHTML = this.level;
+    this.linesCleared = 0;
+    this.timer -= (10/100) * this.timer;
+    clearInterval(this.timerId);
+    this.timerId = window.setInterval(this.mainGameLoop.bind(this), this.timer);
+  }
+
+  checkScore() {
+    if (this.score == 100) this.playAudio(this.s100Audio, true, 0.5);
+    else if (this.score == 1000) this.playAudio(this.s1000Audio, true, 0.75);
+    else if (this.score == 10000) this.playAudio(this.s10000Audio, true, 1);
+
+    if (this.linesCleared == this.linesToNextLevel) this.advanceLevel();
+  }
+
+  playAudio(soundFile, play: boolean, volume?: number, loop: boolean = false) {
+    if (play) {
+
+      if (loop) {
+        soundFile.loop = loop;
+        soundFile.play();
+      } else {
+        soundFile.play();
+      }
+
+      if (volume != null) soundFile.volume = volume;
+
+    } else {
+      soundFile.pause();
+      //file.currentTime = 0;
+    }
+  }
+
+  playAudioThenNextAudio(soundFile, nextSoundFile, volume1?: number, volume2?: number) {
+    soundFile.addEventListener('ended', () => {
+      this.playAudio(nextSoundFile, true, volume2);
+    });
+    this.playAudio(soundFile, true, volume1);
   }
 
   /////////////////////////////////////////////////////////////////////////////////
@@ -383,8 +459,8 @@ export class HomePage {
         this.rotate();
       } else if (e.keyCode === 40) {  // down arrow
         this.moveDown();
-      }
-    }
+      };
+    };
   }*/
 
   moveLeft() { // move tetrolino left until edge of screen
@@ -392,10 +468,10 @@ export class HomePage {
     const isAtLeftEdge = this.currentTetrolino.some(index => (this.currentPosition + index) % this.width_squareGrid === 0);
     if (!isAtLeftEdge) {
       this.currentPosition -= 1;
-    }
+    };
     if (this.currentTetrolino.some(index => this.squares_grid[this.currentPosition + index].classList.contains('solid'))) {
       this.currentPosition += 1;
-    }
+    };
     this.draw();
   }
 
@@ -404,15 +480,16 @@ export class HomePage {
     const isAtRightEdge = this.currentTetrolino.some(index => (this.currentPosition + index) % this.width_squareGrid === this.width_squareGrid - 1);
     if (!isAtRightEdge) {
       this.currentPosition += 1;
-    }
+    };
     if (this.currentTetrolino.some(index => this.squares_grid[this.currentPosition + index].classList.contains('solid'))) {
       this.currentPosition -= 1;
-    }
+    };
     this.draw();
   }
 
   moveDown() {  // move tetrolino down faster
     this.advanceTetrolinoDownward();
+    this.moveDownBonus++;
   }
 
   rotate() { // rotate the tetrolino
@@ -420,7 +497,7 @@ export class HomePage {
     this.currentRotation++;            // advance to the next rotation
     if (this.currentRotation === this.currentTetrolino.length) {
       this.currentRotation = 0;        // reset index to zero (first rotation)
-    }
+    };
     this.currentTetrolino = this.selectedTetrolino[this.currentRotation];
     this.checkRotatedPosition()
     this.draw();
@@ -433,16 +510,16 @@ export class HomePage {
   }
 
   pauseGame(b) {
+    this.playAudio(this.tetrolinoMusic, !b, 1, true);
     console.log("gamePaused: " + b);
     if (!b) {
       this.titleDisplay.innerHTML = this.gameTitleString;
       this.timerId = window.setInterval(this.mainGameLoop.bind(this), this.timer);
-    }
-    else {
+    } else {
       clearInterval(this.timerId);
       this.titleDisplay.innerHTML = this.gamePauseString;
       this.gamePausedAlert();
-    }
+    };
   }
 
   gameOver() {
@@ -450,10 +527,18 @@ export class HomePage {
       this.titleDisplay.innerHTML = this.gameOverString;
       clearInterval(this.timerId);
       this.gameIsOver = true;
+
+      this.playAudio(this.tetrolinoMusic, false);
+      //this.tetrolinoMusic = null;
+      this.tetrolinoMusic = new Audio('assets/audio/tetrolino.mp3');
+      this.playAudio(this.tetrolinoMusic, true, 0.20, false);
+      this.tetrolinoMusic.playbackRate = 0.85;
+      //this.playAudio(this.gameOverAudio, true);
+      this.playAudio(this.goodGameAudio, true);
+
       this.removeButtonListeners();
-      //this.restartGameAlert();
-      this.watchAdAlert() // then restart game
-    }
+      this.watchAdAlert(); // then restart game
+    };
   }
 
   restartGame() {
@@ -471,24 +556,6 @@ export class HomePage {
     });
     await alert.present();
   }*/
-
-  async watchAdAlert() {
-    const alert = await this.alertController.create({
-      //header: 'Tetrolino',
-      subHeader: 'Game Loading',
-      message: 'Tetrolino is free to play. Please take a moment and watch a short ad. Thank you and have fun with this timeless classic!',
-      buttons: [
-        {
-          text: 'OK',
-          handler: () => {
-            this.handlerMessage = 'Loading Ad...';
-            this.showRewardAd();
-          },
-        }
-      ]
-    });
-    await alert.present();
-  }
 
   async gamePausedAlert() {
     const alert = await this.alertController.create({
@@ -523,15 +590,35 @@ export class HomePage {
     await alert.present();
   }
 
+  async watchAdAlert() {
+    const alert = await this.alertController.create({
+      header: 'Tetrolino',
+      subHeader: 'by Zen Masters',
+      message: 'Tetrolino is free to play. Please take a moment and watch a short ad. Thank you and have fun with this timeless classic!',
+      buttons: [
+        {
+          text: 'OK',
+          handler: () => {
+            this.handlerMessage = 'Loading Ad...';
+            this.playAudio(this.tetrolinoMusic, false);
+            this.showRewardAd();
+          },
+        }
+      ],
+      backdropDismiss: false
+    });
+    await alert.present();
+  }
+
   /////////////////////////////////////////////////////////////////////////////////
   // GOOGLE ADMOB
   async initializeGoogleAdMob() {
     const { status } = await AdMob.trackingAuthorizationStatus();
     console.log(status);
 
-    if (status === 'notDetermined') {
+    /*if (status === 'notDetermined') {
       console.log('Display information before ads load first time.');
-    }
+    }*/
 
     AdMob.initialize({
       requestTrackingAuthorization: true,
@@ -595,6 +682,14 @@ export class HomePage {
       //ssv: { ... }
     };
     await AdMob.prepareRewardVideoAd(options);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////////
+  // TESTING FUNCTIONS
+  fnTest() {
+    this.score += this.specialTetrolinoMoveBonus + this.levelBonus;
+    this.scoreDisplay.innerHTML = this.score;
+    this.playAudioThenNextAudio(this.tetrolinoSpecialMoveAudio, this.goodJobAudio, 0.5, 0.85);
   }
 
 }
