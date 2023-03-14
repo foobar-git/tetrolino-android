@@ -69,16 +69,19 @@ export class HomePage {
   ];
 
   // audio
-  tetrolinoMusic = new Audio('assets/audio/tetrolino.mp3');
-  solidifyAudio = new Audio('assets/audio/solidify.mp3');
-  clearLineAudio = new Audio('assets/audio/clearLine.mp3');
-  tetrolinoSpecialMoveAudio = new Audio('assets/audio/tetrolinoSpecialMove.mp3');
-  gameOverAudio = new Audio('assets/audio/voice/gameOver.wav');
-  goodGameAudio = new Audio('assets/audio/voice/goodGame.wav');
-  goodJobAudio = new Audio('assets/audio/voice/goodJob.wav');
-  s100Audio = new Audio('assets/audio/voice/100.wav');
-  s1000Audio = new Audio('assets/audio/voice/1000.wav');
-  s10000Audio = new Audio('assets/audio/voice/10000.wav');
+  backgroundMusic: HTMLAudioElement;
+  tetrolinoMusic = 'assets/audio/tetrolino.mp3';
+  soundEffect: HTMLAudioElement;
+  solidifyAudio = 'assets/audio/solidify.mp3';
+  clearLineAudio = 'assets/audio/clearLine.mp3';
+  tetrolinoSpecialMoveAudio = 'assets/audio/tetrolinoSpecialMove.mp3';
+  voice: HTMLAudioElement;
+  gameOverAudio = 'assets/audio/voice/gameOver.wav';
+  goodGameAudio = 'assets/audio/voice/goodGame.wav';
+  goodJobAudio = 'assets/audio/voice/goodJob.wav';
+  s100Audio = 'assets/audio/voice/100.wav';
+  s1000Audio = 'assets/audio/voice/1000.wav';
+  s10000Audio = 'assets/audio/voice/10000.wav';
 
   // buttons
   startPauseButton: any;
@@ -131,6 +134,9 @@ export class HomePage {
   }
 
   ngOnInit() {
+    // init audio
+     this.backgroundMusic = this.setAudio(this.tetrolinoMusic, 1, true);
+
     // init grid
     this.setUpGrid(this.width_mainWindow);
     this.tetrolinoes = this.initTetrolinos(this.width_squareGrid);
@@ -334,7 +340,8 @@ export class HomePage {
 
   solidify() { // solidify the tetrolino into place
     if (this.currentTetrolino.some(index => this.squares_grid[this.currentPosition + index + this.width_squareGrid].classList.contains('solid'))) {
-      this.playAudio(this.solidifyAudio, true, 0.20);
+      this.soundEffect = this.setAudio(this.solidifyAudio, 0.20);
+      this.soundEffect.play();
       this.currentTetrolino.forEach(index => this.squares_grid[this.currentPosition + index].classList.add('solid'));
       this.selectRandomTetrolino();
       this.currentPosition = this.startingPosition;     // set the new tetrolino at the top
@@ -364,12 +371,20 @@ export class HomePage {
   }  
 
   addScore() {
-    this.playAudio(this.clearLineAudio, true, 0.85);
+    this.soundEffect = this.setAudio(this.clearLineAudio, 0.65);
+    this.soundEffect.play();
     this.linesCleared++;
     this.score += 10 + this.moveDownBonus;
-    if (this.specialTetrolinoMoveCounter == 4) {
+    if (this.specialTetrolinoMoveCounter == 1) {
       this.score += this.specialTetrolinoMoveBonus + this.levelBonus;
-      this.playAudioThenNextAudio(this.tetrolinoSpecialMoveAudio, this.goodJobAudio, 0.5, 0.85);
+      
+      // wait for first audio to finish, then play next audio
+      this.soundEffect = this.setAudio(this.tetrolinoSpecialMoveAudio, 0.5);
+      this.soundEffect.addEventListener('ended', () => {
+        this.voice = this.setAudio(this.goodJobAudio, 0.85);
+        this.voice.play();
+      });
+      this.soundEffect.play();
     }
     this.scoreDisplay.innerHTML = this.score;
     this.checkScore();
@@ -386,36 +401,21 @@ export class HomePage {
   }
 
   checkScore() {
-    if (this.score == 100) this.playAudio(this.s100Audio, true, 0.5);
-    else if (this.score == 1000) this.playAudio(this.s1000Audio, true, 0.75);
-    else if (this.score == 10000) this.playAudio(this.s10000Audio, true, 1);
+    if (this.score == 100) this.soundEffect = this.setAudio(this.s100Audio, 0.5);
+    else if (this.score == 1000) this.soundEffect = this.setAudio(this.s1000Audio, 0.75);
+    else if (this.score == 10000) this.soundEffect = this.setAudio(this.s10000Audio, 1);
+
+    this.soundEffect.play();
 
     if (this.linesCleared == this.linesToNextLevel) this.advanceLevel();
   }
 
-  playAudio(soundFile, play: boolean, volume?: number, loop: boolean = false) {
-    if (play) {
-
-      if (loop) {
-        soundFile.loop = loop;
-        soundFile.play();
-      } else {
-        soundFile.play();
-      }
-
-      if (volume != null) soundFile.volume = volume;
-
-    } else {
-      soundFile.pause();
-      //file.currentTime = 0;
-    }
-  }
-
-  playAudioThenNextAudio(soundFile, nextSoundFile, volume1?: number, volume2?: number) {
-    soundFile.addEventListener('ended', () => {
-      this.playAudio(nextSoundFile, true, volume2);
-    });
-    this.playAudio(soundFile, true, volume1);
+  setAudio(path: string, volume: number = 1, loop: boolean = false) {
+    let file: HTMLAudioElement;
+    file = new Audio(path);
+    file.volume = volume;
+    file.loop = loop;
+    return file;
   }
 
   /////////////////////////////////////////////////////////////////////////////////
@@ -510,12 +510,13 @@ export class HomePage {
   }
 
   pauseGame(b) {
-    this.playAudio(this.tetrolinoMusic, !b, 1, true);
     console.log("gamePaused: " + b);
     if (!b) {
+      this.backgroundMusic.play();
       this.titleDisplay.innerHTML = this.gameTitleString;
       this.timerId = window.setInterval(this.mainGameLoop.bind(this), this.timer);
     } else {
+      this.backgroundMusic.pause();
       clearInterval(this.timerId);
       this.titleDisplay.innerHTML = this.gamePauseString;
       this.gamePausedAlert();
@@ -528,13 +529,11 @@ export class HomePage {
       clearInterval(this.timerId);
       this.gameIsOver = true;
 
-      this.playAudio(this.tetrolinoMusic, false);
-      //this.tetrolinoMusic = null;
-      this.tetrolinoMusic = new Audio('assets/audio/tetrolino.mp3');
-      this.playAudio(this.tetrolinoMusic, true, 0.20, false);
-      this.tetrolinoMusic.playbackRate = 0.85;
-      //this.playAudio(this.gameOverAudio, true);
-      this.playAudio(this.goodGameAudio, true);
+      this.backgroundMusic.volume = 0.25;
+      this.backgroundMusic.playbackRate = 0.85;
+      
+      this.voice = this.setAudio(this.goodGameAudio);
+      this.voice.play();
 
       this.removeButtonListeners();
       this.watchAdAlert(); // then restart game
@@ -600,7 +599,7 @@ export class HomePage {
           text: 'OK',
           handler: () => {
             this.handlerMessage = 'Loading Ad...';
-            this.playAudio(this.tetrolinoMusic, false);
+            this.backgroundMusic.play();
             this.showRewardAd();
           },
         }
@@ -687,9 +686,7 @@ export class HomePage {
   /////////////////////////////////////////////////////////////////////////////////
   // TESTING FUNCTIONS
   fnTest() {
-    this.score += this.specialTetrolinoMoveBonus + this.levelBonus;
-    this.scoreDisplay.innerHTML = this.score;
-    this.playAudioThenNextAudio(this.tetrolinoSpecialMoveAudio, this.goodJobAudio, 0.5, 0.85);
+    
   }
 
 }
